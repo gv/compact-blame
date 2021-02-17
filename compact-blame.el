@@ -1,4 +1,4 @@
-;;;  -*- lexical-binding: t; lisp-indent-offset: 1 -*-
+;;;  -*- lexical-binding: t; lisp-indent-offset: 1; indent-tabs-mode: nil -*-
 ;; A minor emacs mode for showing "git blame" data  in an
 ;; unobtrusive way. (At the end of a line like this) <|2018|11|vg|
 
@@ -42,11 +42,11 @@
 
 (defun Compact-blame-bg-color-from-id (id)
  (let* ((r (string-to-number (substring id 0 2) 16))
-		(g (string-to-number (substring id 2 4) 16))
-		(b (string-to-number (substring id 4 6) 16))
-		;; 600 is more contrast but darker...
-		(lc (max 1 (/ (- (min 765 compact-blame-light-coeff) (+ r g b)) 50)))
-		(up (lambda (x) (- 255 (/ (- 255 x) lc)))))
+        (g (string-to-number (substring id 2 4) 16))
+        (b (string-to-number (substring id 4 6) 16))
+        ;; 600 is more contrast but darker...
+        (lc (max 1 (/ (- (min 765 compact-blame-light-coeff) (+ r g b)) 50)))
+        (up (lambda (x) (- 255 (/ (- 255 x) lc)))))
   (apply 'format "#%02x%02x%02x" (mapcar up (list r g b)))))
 
 (defmacro Compact-blame-defun-subst
@@ -54,7 +54,7 @@
  "Insert variable lists into function defs. That should allow us to 
 pass object contexts around or store them to variables as a single unit"
  (let ((l-e '((commit-vars time author id)
-			  (region-vars ov number length))))
+              (region-vars ov number length))))
   (setq l-e (nconc (eval additional-lists l-e) l-e))
   (list 'defun name (eval arglist l-e) docstring
    (eval form l-e))))
@@ -74,35 +74,35 @@ pass object contexts around or store them to variables as a single unit"
  `(,@region-vars ,@commit-vars)
  "Print data onto the overlay and save them to file-info" '() 
  `(let* ((str compact-blame-format)
-		 (id (overlay-get ov 'Compact-blame-rev))
-		 (b (Compact-blame-get-bg-color id compact-blame-bg1))
-		 (b2 (Compact-blame-get-bg-color
-			  (substring id 6) compact-blame-bg2))
-		 (f "#303030") (f2 "#111111"))
+         (id (overlay-get ov 'Compact-blame-rev))
+         (b (Compact-blame-get-bg-color id compact-blame-bg1))
+         (b2 (Compact-blame-get-bg-color
+              (substring id 6) compact-blame-bg2))
+         (f "#303030") (f2 "#111111"))
    (setq length-indication
-	(if (< (length length) 2) "" (concat "\x2193" length)))
+    (if (< (length length) 2) "" (concat "\x2193" length)))
    (setq str (replace-regexp-in-string "%#" length-indication str))
    (setq str (replace-regexp-in-string "%[.]" (or author "...") str))
    (setq str
-	(replace-regexp-in-string "%Y" (format-time-string "%Y" time) str))
+    (replace-regexp-in-string "%Y" (format-time-string "%Y" time) str))
    ;;(setq str (propertize
-   ;;		 str 'face (apply 'list :background b :foreground f defprops)))
+   ;;        str 'face (apply 'list :background b :foreground f defprops)))
    (setq str
-	(Compact-blame-propertize-face str :background b :foreground f))
+    (Compact-blame-propertize-face str :background b :foreground f))
    (setq str
-	(replace-regexp-in-string "%m"
-	 (Compact-blame-propertize-face (format-time-string "%m" time)
-	  :background b2 :foreground f2 :box t) str))
+    (replace-regexp-in-string "%m"
+     (Compact-blame-propertize-face (format-time-string "%m" time)
+      :background b2 :foreground f2 :box t) str))
    ;;(propertize (format-time-string "%m" time) 'face
-   ;; (apply 'list :background b2 :foreground f2	:box t defprops)) str))
+   ;; (apply 'list :background b2 :foreground f2    :box t defprops)) str))
    (setq str (replace-regexp-in-string "^\s+\\|\s+$" "" str))
    (setq str
-	(concat (propertize " \x25c4" 'face (list :foreground b)) str))
+    (concat (propertize " \x25c4" 'face (list :foreground b)) str))
    (overlay-put ov 'before-string str)
    (overlay-put ov 'Compact-blame-ov-data
-	(list ,@region-vars))
+    (list ,@region-vars))
    (puthash id
-	(list ,@commit-vars) Compact-blame-file-info)))
+    (list ,@commit-vars) Compact-blame-file-info)))
 ;;(format "---\n\n%s" (symbol-function 'Compact-blame-update-overlay-local))
 ;;(byte-compile 'Compact-blame-update-overlay-local)
 
@@ -120,13 +120,13 @@ pass object contexts around or store them to variables as a single unit"
 (defun Compact-blame-update-status (b show line-number)
  (with-current-buffer b
   (let ((str "Loading 'git blame' data %d/%d (%d%%)...")
-		(b "#404040") (f "#FFFFFF"))
+        (b "#404040") (f "#FFFFFF"))
    (setq str (format str line-number Compact-blame-total-lines
-			  (/ (* 100 line-number) Compact-blame-total-lines)))
-	(overlay-put (Compact-blame-get-status-ov-local) 'after-string
-	 (if show
-	  (Compact-blame-propertize-face str :foreground f :background b)
-	  "")))))
+              (/ (* 100 line-number) Compact-blame-total-lines)))
+    (overlay-put (Compact-blame-get-status-ov-local) 'after-string
+     (if show
+      (Compact-blame-propertize-face str :foreground f :background b)
+      "")))))
 
 (defvar-local Compact-blame-saved-pos 0)
 (defvar-local Compact-blame-saved-pos-ln 0)
@@ -146,7 +146,7 @@ pass object contexts around or store them to variables as a single unit"
    ;; ---
    ;;(let ((lines (split-string (buffer-string) "\n")))
    ;; (- (length (buffer-string))
-   ;;	(length (mapconcat 'identity (nthcdr n lines) " ")))
+   ;;   (length (mapconcat 'identity (nthcdr n lines) " ")))
    ;; )
   ))
 
@@ -154,17 +154,17 @@ pass object contexts around or store them to variables as a single unit"
  (let (ov)
   (setq ov
    (if (= line-number 1)
-	(Compact-blame-get-status-ov-local)
-	(let* ((pos (Compact-blame-find-pos (current-buffer) line-number))
-		   (ov (make-overlay pos pos (current-buffer) t t)))
-	 (push ov Compact-blame-overlays)
-	 ov)))
+    (Compact-blame-get-status-ov-local)
+    (let* ((pos (Compact-blame-find-pos (current-buffer) line-number))
+           (ov (make-overlay pos pos (current-buffer) t t)))
+     (push ov Compact-blame-overlays)
+     ov)))
   (overlay-put ov 'Compact-blame-rev id)
   ov))
 
 (defun Compact-blame-get-body-ov-local (line-number id)
  (let* ((start (Compact-blame-find-start-local line-number)) ov
-		(end (+ start 4)))
+        (end (+ start 4)))
   ;; (setq end (min end 
   (setq ov (make-overlay start end))
   (push ov Compact-blame-separators)
@@ -191,16 +191,16 @@ pass object contexts around or store them to variables as a single unit"
  (let ((ac "") consumed)
   (set-process-filter process
    (lambda (proc str)
-	(if (not (buffer-live-p b))
-	 (progn
-	  (message "Buffer '%s' gone, killing process '%s'" b proc)
-	  (delete-process proc))
-	 (setq ac (concat ac str))
-	 (while (string-match pattern ac)
-	  (setq consumed (match-end 0))
-	  (funcall cb ac)
-	  (setq ac (substring ac consumed))))))))
-								
+    (if (not (buffer-live-p b))
+     (progn
+      (message "Buffer '%s' gone, killing process '%s'" b proc)
+      (delete-process proc))
+     (setq ac (concat ac str))
+     (while (string-match pattern ac)
+      (setq consumed (match-end 0))
+      (funcall cb ac)
+      (setq ac (substring ac consumed))))))))
+                                
 (defconst Compact-blame-pattern
   (compact-blame-make-line-pattern
    "\\(?1:[0-9a-fA-F]+\\) [0-9]+ \\(?2:[0-9]+\\) \\(?3:[0-9]+\\)"
@@ -216,42 +216,42 @@ pass object contexts around or store them to variables as a single unit"
 (Compact-blame-defun-subst Compact-blame-install-output-handler ()
  "All output line processing here"
  `((call-update
-	Compact-blame-update-overlay-local ,@region-vars ,@commit-vars))
+    Compact-blame-update-overlay-local ,@region-vars ,@commit-vars))
  `(let* ((b (current-buffer)) n commit-data (count 0)
-		 ,@region-vars ,@commit-vars)
+         ,@region-vars ,@commit-vars)
    (Compact-blame-filter-lines
-	Compact-blame-process b Compact-blame-pattern
-	(lambda (ac)
-	 ;;(message "a='%s' m=%s" (match-string 0 ac) (match-data))
-	 (cond
-	  ((setq n (match-string 1 ac))
-	   (setq number (string-to-number (match-string 2 ac)))
-	   (setq length (match-string 3 ac) id n)
-	   (Compact-blame-update-status b t
-		(setq count (+ count (string-to-number length))))
-	   (with-current-buffer b
-		(setq ov (Compact-blame-get-overlay-local number id))
-		(Compact-blame-get-body-ov-local number id)
-		(if (setq commit-data (gethash id Compact-blame-file-info))
-		 (progn
-		  (apply 'Compact-blame-update-overlay-local
-		   ,@region-vars commit-data))
-		 (setq time nil author nil)
-		 ,call-update)))
-	  ((setq n (match-string 5 ac))
-	   ;;(message "new-time='%s'" n)
-	   (setq time (seconds-to-time (string-to-number n)))
-	   (with-current-buffer b ,call-update))
-	  ;;(when (setq unimportant (match-string 101 ac))
-	  ;;(message "unimportant='%s'" unimportant))
-	  ((setq n (match-string 4 ac))
-	   ;;(message "new-author='%s'" n)
-	   (setq author n)
-	   (with-current-buffer b ,call-update))
-	  ((setq fatal (match-string 6 ac))
-	   (message "fatal='%s'" fatal)) 
-	  ((setq unparsed (match-string 98 ac))
-	   (message "unparsed='%s'" unparsed)))))))
+    Compact-blame-process b Compact-blame-pattern
+    (lambda (ac)
+     ;;(message "a='%s' m=%s" (match-string 0 ac) (match-data))
+     (cond
+      ((setq n (match-string 1 ac))
+       (setq number (string-to-number (match-string 2 ac)))
+       (setq length (match-string 3 ac) id n)
+       (Compact-blame-update-status b t
+        (setq count (+ count (string-to-number length))))
+       (with-current-buffer b
+        (setq ov (Compact-blame-get-overlay-local number id))
+        (Compact-blame-get-body-ov-local number id)
+        (if (setq commit-data (gethash id Compact-blame-file-info))
+         (progn
+          (apply 'Compact-blame-update-overlay-local
+           ,@region-vars commit-data))
+         (setq time nil author nil)
+         ,call-update)))
+      ((setq n (match-string 5 ac))
+       ;;(message "new-time='%s'" n)
+       (setq time (seconds-to-time (string-to-number n)))
+       (with-current-buffer b ,call-update))
+      ;;(when (setq unimportant (match-string 101 ac))
+      ;;(message "unimportant='%s'" unimportant))
+      ((setq n (match-string 4 ac))
+       ;;(message "new-author='%s'" n)
+       (setq author n)
+       (with-current-buffer b ,call-update))
+      ((setq fatal (match-string 6 ac))
+       (message "fatal='%s'" fatal)) 
+      ((setq unparsed (match-string 98 ac))
+       (message "unparsed='%s'" unparsed)))))))
 ;;(format "----\n\n%s" (symbol-function 'Compact-blame-install-output-handler))
 ;;(byte-compile 'Compact-blame-install-output-handler)
 
@@ -266,10 +266,10 @@ pass object contexts around or store them to variables as a single unit"
   (Compact-blame-install-output-handler)
   (set-process-sentinel Compact-blame-process
    (lambda (process event)
-	(setq event (car (split-string event)))
-	(Compact-blame-update-status b nil 100)
-	(message
-	 "event=%s time=%dms" event (* 1000 (- (float-time) take-off)))))))
+    (setq event (car (split-string event)))
+    (Compact-blame-update-status b nil 100)
+    (message
+     "event=%s time=%dms" event (* 1000 (- (float-time) take-off)))))))
 
 
 (defun Compact-blame-cleanup ()
@@ -286,28 +286,28 @@ pass object contexts around or store them to variables as a single unit"
  (require 'vc)
  (let*
   ((p (save-excursion
-	   (skip-chars-forward "^\n")
-	   (point)))
+       (skip-chars-forward "^\n")
+       (point)))
    (ovs (overlays-in p p))
    (get-id (lambda (ov)
-			(list (overlay-get ov 'Compact-blame-rev))))
+            (list (overlay-get ov 'Compact-blame-rev))))
    (ids (delq nil (mapcan get-id ovs))))
   (cond
    ((not ovs)
-	(message "No overlays at pos %d" p))
+    (message "No overlays at pos %d" p))
    ((not ids)
-	(message "Commit id not found in %d overlays" (length ovs)))
+    (message "Commit id not found in %d overlays" (length ovs)))
    (t
-	(message "ids=%s" ids)
-	(if all-files
-	 (Compact-blame-show-commit (car ids))
-	 (vc-diff-internal t ;; async
-	  (list 'git (if all-files nil (list (buffer-file-name))))
-	  ;; TODO: fix situation with root commit
-	  (format "%s^" (car ids))
-	  (car ids)
-	  t ;; verbose
-	  )))
+    (message "ids=%s" ids)
+    (if all-files
+     (Compact-blame-show-commit (car ids))
+     (vc-diff-internal t ;; async
+      (list 'git (if all-files nil (list (buffer-file-name))))
+      ;; TODO: fix situation with root commit
+      (format "%s^" (car ids))
+      (car ids)
+      t ;; verbose
+      )))
    )))
 
 (defun Compact-blame-show-commit (id)
@@ -336,7 +336,7 @@ pass object contexts around or store them to variables as a single unit"
  (mapc
   (lambda (ov)
    (overlay-put ov 'face
-	(list :overline compact-blame-separators-enabled)))
+    (list :overline compact-blame-separators-enabled)))
   Compact-blame-separators
   ))
 
@@ -353,11 +353,11 @@ pass object contexts around or store them to variables as a single unit"
  (mapc
   (lambda (ov)
    (let* (args (id (overlay-get ov 'Compact-blame-rev))
-		  (commit-data (gethash id Compact-blame-file-info)))
-	(when id
-	 (setq args (append (overlay-get ov 'Compact-blame-ov-data) commit-data))
-	 ;;(message "id=%s args=%s" id args)
-	 (apply 'Compact-blame-update-overlay-local args))))
+          (commit-data (gethash id Compact-blame-file-info)))
+    (when id
+     (setq args (append (overlay-get ov 'Compact-blame-ov-data) commit-data))
+     ;;(message "id=%s args=%s" id args)
+     (apply 'Compact-blame-update-overlay-local args))))
   Compact-blame-overlays)
  (message "coeff=%s" compact-blame-light-coeff))
 
@@ -376,11 +376,11 @@ pass object contexts around or store them to variables as a single unit"
   (if (not (buffer-file-name))
    (message "Buffer %s is not a file" (current-buffer))
    (if compact-blame-mode
-	(progn
-	 (set (make-local-variable 'compact-blame-saved-readonly)
-	  buffer-read-only)
-	 (setq buffer-read-only t)
-	 (Compact-blame-create-process))
-	(Compact-blame-cleanup)
-	(setq buffer-read-only compact-blame-saved-readonly)
-	))))
+    (progn
+     (set (make-local-variable 'compact-blame-saved-readonly)
+      buffer-read-only)
+     (setq buffer-read-only t)
+     (Compact-blame-create-process))
+    (Compact-blame-cleanup)
+    (setq buffer-read-only compact-blame-saved-readonly)
+    ))))
