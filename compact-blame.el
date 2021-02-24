@@ -184,8 +184,11 @@ pass object contexts around or store them to variables as a single unit"
  ;; (make-process
  ;;  :command command :buffer nil
  ;;  :filter
- (set (make-local-variable name)
-  (apply 'start-process (symbol-name name) nil cmd)))
+ ;;
+ ;; In case someone changed it from default value...
+ (let ((default-directory (file-name-directory (buffer-file-name))))
+  (set (make-local-variable name)
+   (apply 'start-process (symbol-name name) nil cmd))))
 
 (defun Compact-blame-filter-lines (process b pattern cb)
  (let ((ac "") consumed)
@@ -262,7 +265,10 @@ pass object contexts around or store them to variables as a single unit"
    Compact-blame-file-info (make-hash-table :test 'equal))
   (Compact-blame-make-status)
   (Compact-blame-spawn-local 'Compact-blame-process
-   "nice" "git" "blame" "-w" "--incremental" (buffer-file-name))
+   "nice" "git" "blame" "-w" "--incremental"
+   ;; Full path only works if it doesn't have symlinks to
+   ;; somewhere inside of the repo
+   (file-name-nondirectory (buffer-file-name)))
   (Compact-blame-install-output-handler)
   (set-process-sentinel Compact-blame-process
    (lambda (process event)
