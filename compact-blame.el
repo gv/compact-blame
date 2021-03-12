@@ -25,14 +25,7 @@
 (defvar-local Compact-blame-file-info nil)
 (defvar-local Compact-blame-total-lines 0)
 
-;; (eval-buffer)
 ;; (emacs-lisp-byte-compile-and-load)
-
-(defun compact-blame-make-line-pattern (&rest parts)
-  (format "^\\(?:%s\\)\n" (mapconcat 'identity parts "\\|")))
-
-(defun compact-blame-pattern-for-space-separated-tokens (&rest parts)
- (mapconcat 'identity parts "[ \t]+"))
 
 (defun Compact-blame-get-light-coeff () "TODO")
 
@@ -59,16 +52,8 @@ pass object contexts around or store them to variables as a single unit"
   (list 'defun name (eval arglist l-e) docstring
    (eval form l-e))))
 
-(defun Compact-blame-propertize-face_ (str &rest props)
- (propertize str 'face
-  (cons :height (cons 0.85 props))))
-
 (define-inline Compact-blame-propertize-face (str &rest props)
  (propertize str 'face (cons :height (cons 0.85 props))))
-
-(defun Compact-blame-propertize-face_ (s_ &rest props)
- (list 'propertize s_ ''face
-  `(list :height 0.85 ,@props)))
 
 (Compact-blame-defun-subst Compact-blame-update-overlay-local
  `(,@region-vars ,@commit-vars)
@@ -103,6 +88,7 @@ pass object contexts around or store them to variables as a single unit"
     (list ,@region-vars))
    (puthash id
     (list ,@commit-vars) Compact-blame-file-info)))
+
 ;;(format "---\n\n%s" (symbol-function 'Compact-blame-update-overlay-local))
 ;;(byte-compile 'Compact-blame-update-overlay-local)
 
@@ -205,17 +191,18 @@ pass object contexts around or store them to variables as a single unit"
       (setq ac (substring ac consumed))))))))
                                 
 (defconst Compact-blame-pattern
-  (compact-blame-make-line-pattern
-   "\\(?1:[0-9a-fA-F]+\\) [0-9]+ \\(?2:[0-9]+\\) \\(?3:[0-9]+\\)"
-   "\\(?99:[0-9a-fA-F]+\\) [0-9]+ \\(?2:[0-9]+\\)"
-   "author-mail <\\(?4:.+?\\)[@>].*"
-   "author-time \\(?5:.+\\)"
-   "\\(?99:[a-zA-Z0-9_-]+\\) .*"
-   "\\(?99:[a-zA-Z0-9_-]+\\)"
-   "\t\\(?99:.*\\)"
-   "fatal:\\(?6:.+?\\)"
-   "\\(?98:.*?\\)"))
-
+ (let ((parts
+        '("\\(?1:[0-9a-fA-F]+\\) [0-9]+ \\(?2:[0-9]+\\) \\(?3:[0-9]+\\)"
+          "\\(?99:[0-9a-fA-F]+\\) [0-9]+ \\(?2:[0-9]+\\)"
+          "author-mail <\\(?4:.+?\\)[@>].*"
+          "author-time \\(?5:.+\\)"
+          "\\(?99:[a-zA-Z0-9_-]+\\) .*"
+          "\\(?99:[a-zA-Z0-9_-]+\\)"
+          "\t\\(?99:.*\\)"
+          "fatal:\\(?6:.+?\\)"
+          "\\(?98:.*?\\)")))
+  (format "^\\(?:%s\\)\n" (mapconcat 'identity parts "\\|"))))
+  
 (Compact-blame-defun-subst Compact-blame-install-output-handler ()
  "All output line processing here"
  `((call-update
@@ -255,6 +242,7 @@ pass object contexts around or store them to variables as a single unit"
        (message "fatal='%s'" fatal)) 
       ((setq unparsed (match-string 98 ac))
        (message "unparsed='%s'" unparsed)))))))
+
 ;;(format "----\n\n%s" (symbol-function 'Compact-blame-install-output-handler))
 ;;(byte-compile 'Compact-blame-install-output-handler)
 
@@ -280,7 +268,6 @@ pass object contexts around or store them to variables as a single unit"
 
 (defun Compact-blame-cleanup ()
  (if Compact-blame-process (delete-process Compact-blame-process))
- ;;(backtrace)
  (message
   "#=%d cbm=%s buf=%s" (length Compact-blame-overlays) compact-blame-mode
   (current-buffer))
