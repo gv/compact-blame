@@ -24,6 +24,9 @@
 (defvar-local Compact-blame-separators nil)
 (defvar-local Compact-blame-file-info nil)
 (defvar-local Compact-blame-total-lines 0)
+(defvar-local Compact-blame-progress-percentage-str "... ")
+;; Put this here to allow properties to mode line text
+(put 'Compact-blame-progress-percentage-str 'risky-local-variable t)
 
 ;; (emacs-lisp-byte-compile-and-load)
 
@@ -106,13 +109,19 @@ pass object contexts around or store them to variables as a single unit"
 (defun Compact-blame-update-status (b show line-number)
  (with-current-buffer b
   (let ((str "Loading 'git blame' data %d/%d (%d%%)...")
-        (b "#404040") (f "#FFFFFF"))
-   (setq str (format str line-number Compact-blame-total-lines
-              (/ (* 100 line-number) Compact-blame-total-lines)))
-    (overlay-put (Compact-blame-get-status-ov-local) 'after-string
-     (if show
-      (Compact-blame-propertize-face str :foreground f :background b)
-      "")))))
+        (b "#404040") (f "#FFFFFF")
+        (percentage (/ (* 100 line-number) Compact-blame-total-lines)))
+   (setq str (format str line-number Compact-blame-total-lines percentage))
+   (overlay-put (Compact-blame-get-status-ov-local) 'after-string
+    (if show
+     (Compact-blame-propertize-face str :foreground f :background b)
+     ""))
+   (setq Compact-blame-progress-percentage-str
+    (if show
+     (concat (Compact-blame-propertize-face (format "%d%% blamed" percentage)
+              :foreground f :background b) " ")
+     ""))
+   (force-mode-line-update))))
 
 (defvar-local Compact-blame-saved-pos 0)
 (defvar-local Compact-blame-saved-pos-ln 0)
@@ -373,6 +382,8 @@ pass object contexts around or store them to variables as a single unit"
      (set (make-local-variable 'compact-blame-saved-readonly)
       buffer-read-only)
      (setq buffer-read-only t)
+     (add-to-list 'mode-line-misc-info
+      '(compact-blame-mode Compact-blame-progress-percentage-str))
      (Compact-blame-create-process))
     (Compact-blame-cleanup)
     (setq buffer-read-only compact-blame-saved-readonly)
