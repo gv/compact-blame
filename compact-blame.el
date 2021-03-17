@@ -337,7 +337,8 @@ pass object contexts around or store them to variables as a single unit"
    ;; Tell git to encode commit message and then we decode it back
    ;; Only utf-8 commit messages are supported!
    (setq proc
-    (start-process bn (current-buffer) "git" "show" "--encoding" enc id))
+    (start-process bn (current-buffer) "git" "show"
+     "--ignore-space-change" "--encoding" enc id))
    (set-process-coding-system proc cod-sys)
    (goto-char 1)
    (set-marker (process-mark proc) (point-max) (current-buffer))
@@ -392,17 +393,23 @@ pass object contexts around or store them to variables as a single unit"
 (define-minor-mode compact-blame-mode "TODO Git blame view"
  :lighter ""
  :keymap Compact-blame-keymap
- (let* ((path (buffer-file-name)))
-  (if (not (buffer-file-name))
-   (message "Buffer %s is not a file" (current-buffer))
-   (if compact-blame-mode
-    (progn
-     (set (make-local-variable 'compact-blame-saved-readonly)
-      buffer-read-only)
-     (setq buffer-read-only t)
-     (add-to-list 'mode-line-misc-info
-      '(compact-blame-mode Compact-blame-progress-percentage-str))
-     (Compact-blame-create-process))
-    (Compact-blame-cleanup)
-    (setq buffer-read-only compact-blame-saved-readonly)
-    ))))
+ (let* ((path (buffer-file-name)) (target compact-blame-mode))
+  (when (and compact-blame-mode (not (buffer-file-name)))
+   (message "Buffer %s is not a file! Turning off compact-blame-mode" (current-buffer))
+   (setq compact-blame-mode nil))
+  (when (and compact-blame-mode (buffer-modified-p))
+   (message "Buffer %s is modified! Turning off compact-blame-mode" (current-buffer))
+   (setq compact-blame-mode nil))
+  (if compact-blame-mode
+   (progn
+    (set (make-local-variable 'compact-blame-saved-readonly)
+     buffer-read-only)
+    (setq buffer-read-only t)
+    (add-to-list 'mode-line-misc-info
+     '(compact-blame-mode Compact-blame-progress-percentage-str))
+    (Compact-blame-create-process))
+   (unless target
+    (Compact-blame-cleanup))
+   (setq buffer-read-only compact-blame-saved-readonly))))
+
+
