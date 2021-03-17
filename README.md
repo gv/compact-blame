@@ -1,9 +1,9 @@
 compact-blame-mode
 ---
 
-A minor mode for emacs to present 'git blame' data on top of regular
-text view in a manner that uses as little additional screen space as
-possible
+A 'minor mode' (extension) for emacs to present 'git blame' data on
+top of regular text view in a manner that uses as little additional
+screen space as possible
 
 
 Bugs

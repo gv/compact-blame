@@ -2,6 +2,9 @@
 ;; A minor emacs mode for showing "git blame" data  in an
 ;; unobtrusive way. (At the end of a line like this) <|2018|11|vg|
 
+(if (version< emacs-version "24.4")
+ (error "Emacs version %s is not new enough" emacs-version))
+
 ;; Config
 
 (defvar compact-blame-format "%Y%m%.%#")
@@ -49,13 +52,13 @@
  (name arglist docstring additional-lists form)
  "Insert variable lists into function defs. That should allow us to 
 pass object contexts around or store them to variables as a single unit"
- (let ((l-e '((commit-vars time author id)
+ (let ((lex-env '((commit-vars time author id)
               (region-vars ov number length))))
-  (setq l-e (nconc (eval additional-lists l-e) l-e))
-  (list 'defun name (eval arglist l-e) docstring
-   (eval form l-e))))
+  (setq lex-env (nconc (eval additional-lists lex-env) lex-env))
+  (list 'defun name (eval arglist lex-env) docstring
+   (eval form lex-env))))
 
-(define-inline Compact-blame-propertize-face (str &rest props)
+(defun Compact-blame-propertize-face (str &rest props)
  (propertize str 'face (cons :height (cons 0.85 props))))
 
 (Compact-blame-defun-subst Compact-blame-update-overlay-local
@@ -395,10 +398,12 @@ pass object contexts around or store them to variables as a single unit"
  :keymap Compact-blame-keymap
  (let* ((path (buffer-file-name)) (target compact-blame-mode))
   (when (and compact-blame-mode (not (buffer-file-name)))
-   (message "Buffer %s is not a file! Turning off compact-blame-mode" (current-buffer))
+   (message "Buffer %s is not a file! Turning off compact-blame-mode"
+    (current-buffer))
    (setq compact-blame-mode nil))
   (when (and compact-blame-mode (buffer-modified-p))
-   (message "Buffer %s is modified! Turning off compact-blame-mode" (current-buffer))
+   (message "Buffer %s is modified! Turning off compact-blame-mode"
+    (current-buffer))
    (setq compact-blame-mode nil))
   (if compact-blame-mode
    (progn
