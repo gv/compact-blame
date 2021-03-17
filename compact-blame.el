@@ -312,15 +312,33 @@ pass object contexts around or store them to variables as a single unit"
       )))
    )))
 
+(defun Compact-blame-get-cs-charset (cs)
+ (let (first)
+  (setq first
+   (lambda (charsets)
+    (if charsets
+     (if (eq (car charsets) 'emacs)
+      (funcall first (cdr charsets))
+      (car charsets))
+     'utf-8)))
+  (symbol-name (funcall first (coding-system-charset-list cs)))))
+
 (defun Compact-blame-show-commit (id)
- (let* ((bn (format "*Commit %s*" id)) proc)
+ (let* ((bn (format "*Commit %s*" id)) proc
+        (cod-sys buffer-file-coding-system)
+        (enc (Compact-blame-get-cs-charset cod-sys)))
   (with-current-buffer (get-buffer-create bn)
    (setq buffer-read-only nil)
    (erase-buffer)
    (insert " ")
    (setq buffer-read-only t)
    (diff-mode)
-   (setq proc (start-process bn (current-buffer) "git" "show" id))
+   ;; In case the file has some non utf-8 encoding:
+   ;; Tell git to encode commit message and then we decode it back
+   ;; Only utf-8 commit messages are supported!
+   (setq proc
+    (start-process bn (current-buffer) "git" "show" "--encoding" enc id))
+   (set-process-coding-system proc cod-sys)
    (goto-char 1)
    (set-marker (process-mark proc) (point-max) (current-buffer))
    (pop-to-buffer bn)
