@@ -7,7 +7,7 @@
 
 ;; Config
 
-(defvar compact-blame-format "%Y%m%.%#")
+(defvar compact-blame-format "%Y%0%.%#")
 (defvar compact-blame-separators-enabled nil)
 (defvar compact-blame-bg1 "#E0FFE0")
 (defvar compact-blame-bg2 "#FFFFC0")
@@ -61,6 +61,16 @@ pass object contexts around or store them to variables as a single unit"
 (defun Compact-blame-propertize-face (str &rest props)
  (propertize str 'face (cons :height (cons 0.85 props))))
 
+(defun Compact-blame-superscript (n size)
+ (let* ((digit (% n 10))
+        (last
+         (substring
+          "\x2070\x00B9\x00B2\x00B3\x2074\x2075\x2076\x2077\x2078\x2079"
+          digit (+ digit 1))))
+  (if (< n 10)
+   last
+   (concat (Compact-blame-superscript (/ n 10) size) last))))
+
 (Compact-blame-defun-subst Compact-blame-update-overlay-local
  `(,@region-vars ,@commit-vars)
  "Print data onto the overlay and save them to file-info" '() 
@@ -76,14 +86,19 @@ pass object contexts around or store them to variables as a single unit"
    (setq str (replace-regexp-in-string "%[.]" (or author "...") str))
    (setq str
     (replace-regexp-in-string "%Y" (format-time-string "%Y" time) str))
-   ;;(setq str (propertize
-   ;;        str 'face (apply 'list :background b :foreground f defprops)))
    (setq str
     (Compact-blame-propertize-face str :background b :foreground f))
+   ;; This should be "%M" but it breaks in a very weird way in makefile-mode...
+   (setq str
+    (replace-regexp-in-string "%0"
+     (Compact-blame-propertize-face (format-time-string "%m" time)
+      :background b2 :foreground f2 :box '(:line-width -1)) str))
    (setq str
     (replace-regexp-in-string "%m"
-     (Compact-blame-propertize-face (format-time-string "%m" time)
-      :background b2 :foreground f2 :box t) str))
+     (lambda (s)
+      (Compact-blame-propertize-face
+       (Compact-blame-superscript (nth 4 (decode-time time)) 0)
+       :background b2 :foreground f2)) str))
    ;;(propertize (format-time-string "%m" time) 'face
    ;; (apply 'list :background b2 :foreground f2    :box t defprops)) str))
    (setq str (replace-regexp-in-string "^\s+\\|\s+$" "" str))
