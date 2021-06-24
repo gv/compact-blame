@@ -12,6 +12,7 @@
 (defvar compact-blame-bg1 "#E0FFE0")
 (defvar compact-blame-bg2 "#FFFFC0")
 (defvar compact-blame-light-coeff 650)
+(defvar compact-blame-name-limit 80)
 
 ;; End of config
 ;; Using capitalized prefix for private functions/vars so they don't
@@ -30,8 +31,7 @@
 (defvar-local Compact-blame-progress-percentage-str "... ")
 ;; Put this here to allow properties to mode line text
 (put 'Compact-blame-progress-percentage-str 'risky-local-variable t)
-
-;; (emacs-lisp-byte-compile-and-load)
+(defvar-local Compact-blame-max-author-length 0)
 
 (defun Compact-blame-get-light-coeff () "TODO")
 
@@ -71,9 +71,19 @@ pass object contexts around or store them to variables as a single unit"
    last
    (concat (Compact-blame-superscript (/ n 10) size) last))))
 
-(Compact-blame-defun-subst Compact-blame-update-overlay-local
+(Compact-blame-defun-subst Compact-blame-update&save-overlay-local
  `(,@region-vars ,@commit-vars)
- "Print data onto the overlay and save them to file-info" '() 
+ "Print data onto the overlay and save them to file-info" '()
+ `(let ((id (overlay-get ov 'Compact-blame-rev)))
+   (Compact-blame-update-overlay-local ,@region-vars ,@commit-vars)
+   (overlay-put ov 'Compact-blame-ov-data
+    (list ,@region-vars))
+   (puthash id
+    (list ,@commit-vars) Compact-blame-file-info)))
+
+(Compact-blame-defun-subst Compact-blame-update-overlay-local   
+ `(,@region-vars ,@commit-vars)
+ "Print data onto the overlay" '()
  `(let* ((str compact-blame-format)
          (id (overlay-get ov 'Compact-blame-rev))
          (b (Compact-blame-get-bg-color id compact-blame-bg1))
@@ -83,7 +93,18 @@ pass object contexts around or store them to variables as a single unit"
    (setq length-indication
     (if (< (length length) 2) "" (concat "\x2193" length)))
    (setq str (replace-regexp-in-string "%#" length-indication str))
-   (setq str (replace-regexp-in-string "%[.]" (or author "...") str))
+   (setq author
+    (if (not author) "..."
+     (if (<= compact-blame-name-limit 0) ""
+      (let ((author-rest
+             (- (length author) compact-blame-name-limit -1)))
+       (if (> author-rest 9)
+        (setq author-rest (+ 1 author-rest)))
+       (if (<= author-rest 1)
+        author
+        (concat (substring author 0 (max (- (length author)) (- author-rest)))
+         (Compact-blame-superscript author-rest 0)))))))
+   (setq str (replace-regexp-in-string "%[.]" author str))
    (setq str
     (replace-regexp-in-string "%Y" (format-time-string "%Y" time) str))
    (setq str
@@ -99,16 +120,10 @@ pass object contexts around or store them to variables as a single unit"
       (Compact-blame-propertize-face
        (Compact-blame-superscript (nth 4 (decode-time time)) 0)
        :background b2 :foreground f2)) str))
-   ;;(propertize (format-time-string "%m" time) 'face
-   ;; (apply 'list :background b2 :foreground f2    :box t defprops)) str))
    (setq str (replace-regexp-in-string "^\s+\\|\s+$" "" str))
    (setq str
     (concat (propertize " \x25c4" 'face (list :foreground b)) str))
-   (overlay-put ov 'before-string str)
-   (overlay-put ov 'Compact-blame-ov-data
-    (list ,@region-vars))
-   (puthash id
-    (list ,@commit-vars) Compact-blame-file-info)))
+   (overlay-put ov 'before-string str)))
 
 ;;(format "---\n\n%s" (symbol-function 'Compact-blame-update-overlay-local))
 ;;(byte-compile 'Compact-blame-update-overlay-local)
@@ -233,7 +248,7 @@ pass object contexts around or store them to variables as a single unit"
 (Compact-blame-defun-subst Compact-blame-install-output-handler ()
  "All output line processing here"
  `((call-update
-    Compact-blame-update-overlay-local ,@region-vars ,@commit-vars))
+    Compact-blame-update&save-overlay-local ,@region-vars ,@commit-vars))
  `(let* ((b (current-buffer)) n commit-data (count 0)
          ,@region-vars ,@commit-vars)
    (Compact-blame-filter-lines
@@ -251,7 +266,7 @@ pass object contexts around or store them to variables as a single unit"
         (Compact-blame-get-body-ov-local number id)
         (if (setq commit-data (gethash id Compact-blame-file-info))
          (progn
-          (apply 'Compact-blame-update-overlay-local
+          (apply 'Compact-blame-update&save-overlay-local
            ,@region-vars commit-data))
          (setq time nil author nil)
          ,call-update)))
@@ -264,6 +279,8 @@ pass object contexts around or store them to variables as a single unit"
       ((setq n (match-string 4 ac))
        ;;(message "new-author='%s'" n)
        (setq author n)
+       (if (> (length author) Compact-blame-max-author-length)
+        (setq Compact-blame-max-author-length (length author)))
        (with-current-buffer b ,call-update))
       ((setq fatal (match-string 6 ac))
        (message "fatal='%s'" fatal)) 
@@ -376,8 +393,18 @@ pass object contexts around or store them to variables as a single unit"
   (lambda (ov)
    (overlay-put ov 'face
     (list :overline compact-blame-separators-enabled)))
-  Compact-blame-separators
-  ))
+  Compact-blame-separators))
+
+(defun Compact-blame-refresh ()
+ (mapc
+  (lambda (ov)
+   (let* (args (id (overlay-get ov 'Compact-blame-rev))
+          (commit-data (gethash id Compact-blame-file-info)))
+    (when id
+     (setq args (append (overlay-get ov 'Compact-blame-ov-data) commit-data))
+     ;;(message "id=%s args=%s" id args)
+     (apply 'Compact-blame-update-overlay-local args))))
+  Compact-blame-overlays))
 
 (defun compact-blame-light-up () (interactive)
  (Compact-blame-light-adjust 20))
@@ -388,17 +415,22 @@ pass object contexts around or store them to variables as a single unit"
 (defun Compact-blame-light-adjust (amount)
  (setq compact-blame-light-coeff
   (min 765 (+ compact-blame-light-coeff amount)))
- ;; Refresh
- (mapc
-  (lambda (ov)
-   (let* (args (id (overlay-get ov 'Compact-blame-rev))
-          (commit-data (gethash id Compact-blame-file-info)))
-    (when id
-     (setq args (append (overlay-get ov 'Compact-blame-ov-data) commit-data))
-     ;;(message "id=%s args=%s" id args)
-     (apply 'Compact-blame-update-overlay-local args))))
-  Compact-blame-overlays)
+ (Compact-blame-refresh)
  (message "coeff=%s" compact-blame-light-coeff))
+
+(defun compact-blame-increase-name-limit () (interactive)
+ (Compact-blame-adjust-name-limit 1))
+
+(defun compact-blame-decrease-name-limit () (interactive)
+ (Compact-blame-adjust-name-limit -1))
+
+(defun Compact-blame-adjust-name-limit (amount)
+ (and (> Compact-blame-max-author-length 0)
+  (< Compact-blame-max-author-length compact-blame-name-limit)
+  (setq compact-blame-name-limit Compact-blame-max-author-length))
+ (setq compact-blame-name-limit (max -1 (+ compact-blame-name-limit amount)))
+ (Compact-blame-refresh)
+ (message "Name length limit = %d" compact-blame-name-limit))
 
 (defconst Compact-blame-keymap (make-sparse-keymap))
 (define-key Compact-blame-keymap (kbd "RET") 'compact-blame-mode)
@@ -407,6 +439,8 @@ pass object contexts around or store them to variables as a single unit"
 (define-key Compact-blame-keymap "s" 'compact-blame-toggle-separators)
 (define-key Compact-blame-keymap "-" 'compact-blame-light-up)
 (define-key Compact-blame-keymap "+" 'compact-blame-light-down)
+(define-key Compact-blame-keymap "[" 'compact-blame-decrease-name-limit)
+(define-key Compact-blame-keymap "]" 'compact-blame-increase-name-limit)
 
 (define-minor-mode compact-blame-mode "TODO Git blame view"
  :lighter ""
