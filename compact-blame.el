@@ -61,15 +61,17 @@ pass object contexts around or store them to variables as a single unit"
 (defun Compact-blame-propertize-face (str &rest props)
  (propertize str 'face (cons :height (cons 0.85 props))))
 
-(defun Compact-blame-superscript (n size)
- (let* ((digit (% n 10))
-        (last
-         (substring
-          "\x2070\x00B9\x00B2\x00B3\x2074\x2075\x2076\x2077\x2078\x2079"
-          digit (+ digit 1))))
-  (if (< n 10)
+(defun Compact-blame-superscript (n size base)
+ (let*
+  ((digit (% n base))
+   (last
+    (substring
+     "\x2070\x00B9\x00B2\x00B3\x2074\x2075\x2076\x2077\x2078\x2079\
+\x1D2C\x1D2E\x1D9C\x1D30\x1D31\x1DA0"
+     digit (+ digit 1))))
+  (if (< n base)
    last
-   (concat (Compact-blame-superscript (/ n 10) size) last))))
+   (concat (Compact-blame-superscript (/ n base) size base) last))))
 
 (Compact-blame-defun-subst Compact-blame-update&save-overlay-local
  `(,@region-vars ,@commit-vars)
@@ -103,23 +105,25 @@ pass object contexts around or store them to variables as a single unit"
        (if (<= author-rest 1)
         author
         (concat (substring author 0 (max (- (length author)) (- author-rest)))
-         (Compact-blame-superscript author-rest 0)))))))
+         (Compact-blame-superscript author-rest 0 10)))))))
    (setq str (replace-regexp-in-string "%[.]" author str))
    (setq str
     (replace-regexp-in-string "%Y" (format-time-string "%Y" time) str))
    (setq str
     (Compact-blame-propertize-face str :background b :foreground f))
-   ;; This should be "%M" but it breaks in a very weird way in makefile-mode...
+   ;; %0 should be "%M" but it breaks in a very weird way in makefile-mode...
    (setq str
-    (replace-regexp-in-string "%0"
-     (Compact-blame-propertize-face (format-time-string "%m" time)
-      :background b2 :foreground f2 :box '(:line-width -1)) str))
-   (setq str
-    (replace-regexp-in-string "%m"
+    (replace-regexp-in-string "%[m0x]"
      (lambda (s)
-      (Compact-blame-propertize-face
-       (Compact-blame-superscript (nth 4 (decode-time time)) 0)
-       :background b2 :foreground f2)) str))
+      (if (string-equal s "%m")
+       (Compact-blame-propertize-face
+        (Compact-blame-superscript (nth 4 (decode-time time)) 0 10)
+        :background b2 :foreground f2)
+       (Compact-blame-propertize-face 
+        (if (string-equal s "%0")
+         (format-time-string "%m" time)
+         (format "%X" (nth 4 (decode-time time))))
+         :background b2 :foreground f2 :box '(:line-width -1)))) str))
    (setq str (replace-regexp-in-string "^\s+\\|\s+$" "" str))
    (setq str
     (concat (propertize " \x25c4" 'face (list :foreground b)) str))
@@ -413,10 +417,11 @@ pass object contexts around or store them to variables as a single unit"
  (Compact-blame-light-adjust -20))
 
 (defun Compact-blame-light-adjust (amount)
- (setq compact-blame-light-coeff
-  (min 765 (+ compact-blame-light-coeff amount)))
- (Compact-blame-refresh)
- (message "coeff=%s" compact-blame-light-coeff))
+  (setq compact-blame-light-coeff
+   (min 765 (+ compact-blame-light-coeff amount)))
+  (Compact-blame-refresh)
+  (message "coeff=%s" compact-blame-light-coeff)
+ )
 
 (defun compact-blame-increase-name-limit () (interactive)
  (Compact-blame-adjust-name-limit 1))
@@ -425,12 +430,17 @@ pass object contexts around or store them to variables as a single unit"
  (Compact-blame-adjust-name-limit -1))
 
 (defun Compact-blame-adjust-name-limit (amount)
+ ;; (let ((take-off (float-time)))
  (and (> Compact-blame-max-author-length 0)
-  (< Compact-blame-max-author-length compact-blame-name-limit)
-  (setq compact-blame-name-limit Compact-blame-max-author-length))
+   (< Compact-blame-max-author-length compact-blame-name-limit)
+   (setq compact-blame-name-limit Compact-blame-max-author-length))
  (setq compact-blame-name-limit (max -1 (+ compact-blame-name-limit amount)))
  (Compact-blame-refresh)
- (message "Name length limit = %d" compact-blame-name-limit))
+ (message "Name length limit = %d" compact-blame-name-limit)
+;;  (message "Name length limit = %d, refreshed in %f microsec"
+ compact-blame-name-limit (- (float-time) take-off))
+;; )
+
 
 (defconst Compact-blame-keymap (make-sparse-keymap))
 (define-key Compact-blame-keymap (kbd "RET") 'compact-blame-mode)
