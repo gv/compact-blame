@@ -44,9 +44,14 @@
         (g (string-to-number (substring id 2 4) 16))
         (b (string-to-number (substring id 4 6) 16))
         ;; 600 is more contrast but darker...
-        (lc (max 1 (/ (- (min 765 compact-blame-light-coeff) (+ r g b)) 50)))
+        (lc (max 1 (/ (- (min 1200 compact-blame-light-coeff) (+ r g b)) 50)))
         (up (lambda (x) (- 255 (/ (- 255 x) lc)))))
   (apply 'format "#%02x%02x%02x" (mapcar up (list r g b)))))
+
+(defun Compact-blame-fg-color-from-id (id)
+ (let*
+  ((lv (max 0 (min 255(/ (- (min 1200 compact-blame-light-coeff) 765) 2)))))
+  (format "#%02x%02x%02x" lv lv lv)))
 
 (defmacro Compact-blame-defun-subst
  (name arglist docstring additional-lists form)
@@ -91,7 +96,8 @@ pass object contexts around or store them to variables as a single unit"
          (b (Compact-blame-get-bg-color id compact-blame-bg1))
          (b2 (Compact-blame-get-bg-color
               (substring id 6) compact-blame-bg2))
-         (f "#303030") (f2 "#111111"))
+         (f (Compact-blame-fg-color-from-id id))
+         (f2 (Compact-blame-fg-color-from-id id)))
    (setq length-indication
     (if (< (length length) 2) "" (concat "\x2193" length)))
    (setq str (replace-regexp-in-string "%#" length-indication str))
@@ -418,10 +424,9 @@ pass object contexts around or store them to variables as a single unit"
 
 (defun Compact-blame-light-adjust (amount)
   (setq compact-blame-light-coeff
-   (min 765 (+ compact-blame-light-coeff amount)))
+   (min 1200 (+ compact-blame-light-coeff amount)))
   (Compact-blame-refresh)
-  (message "coeff=%s" compact-blame-light-coeff)
- )
+  (message "coeff=%s" compact-blame-light-coeff))
 
 (defun compact-blame-increase-name-limit () (interactive)
  (Compact-blame-adjust-name-limit 1))
