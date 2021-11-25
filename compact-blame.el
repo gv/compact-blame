@@ -128,7 +128,7 @@ pass object contexts around or store them to variables as a single unit"
        (Compact-blame-propertize-face 
         (if (string-equal s "%0")
          (format-time-string "%m" time)
-         (format "%X" (nth 4 (decode-time time))))
+         (format "%x" (nth 4 (decode-time time))))
          :background b2 :foreground f2 :box '(:line-width -1)))) str))
    (setq str (replace-regexp-in-string "^\s+\\|\s+$" "" str))
    (setq str
@@ -443,8 +443,8 @@ pass object contexts around or store them to variables as a single unit"
  (Compact-blame-refresh)
  (message "Name length limit = %d" compact-blame-name-limit)
 ;;  (message "Name length limit = %d, refreshed in %f microsec"
- compact-blame-name-limit (- (float-time) take-off))
-;; )
+;; compact-blame-name-limit (- (float-time) take-off))
+ )
 
 
 (defconst Compact-blame-keymap (make-sparse-keymap))
