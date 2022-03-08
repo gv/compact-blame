@@ -5,6 +5,7 @@ A 'minor mode' (extension) for emacs to present 'git blame' data on
 top of regular text view in a manner that uses as little additional
 screen space as possible
 
+![Example code view](https://gv.github.io/stuff/images/includes.png)
 
 Bugs
 ---
