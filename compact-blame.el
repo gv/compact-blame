@@ -33,11 +33,12 @@
 (put 'Compact-blame-progress-percentage-str 'risky-local-variable t)
 (defvar-local Compact-blame-max-author-length 0)
 
-(defun Compact-blame-get-light-coeff () "TODO")
-
 (defun Compact-blame-get-bg-color (id config)
- (if (not (string-equal "rainbow" config))
-  config (Compact-blame-bg-color-from-id id)))
+ (if (string-equal "rainbow2" config)
+  (Compact-blame-bg-color-from-id (substring id 6 12))
+  (if (string-equal "rainbow" config)
+   (Compact-blame-bg-color-from-id id)
+   config)))
 
 (defun Compact-blame-bg-color-from-id (id)
  (let* ((r (string-to-number (substring id 0 2) 16))
@@ -55,8 +56,13 @@
 
 (defmacro Compact-blame-defun-subst
  (name arglist docstring additional-lists form)
- "Insert variable lists into function defs. That should allow us to 
-pass object contexts around or store them to variables as a single unit"
+ "Insert variable lists into function defs and/or arg lists. Equivalent C:
+
+#define COMMIT_VARS time, author, id
+...
+
+That should allow us to pass object contexts around or store them 
+to variables as a single unit"
  (let ((lex-env '((commit-vars time author id)
               (region-vars ov number length))))
   (setq lex-env (nconc (eval additional-lists lex-env) lex-env))
@@ -94,8 +100,7 @@ pass object contexts around or store them to variables as a single unit"
  `(let* ((str compact-blame-format)
          (id (overlay-get ov 'Compact-blame-rev))
          (b (Compact-blame-get-bg-color id compact-blame-bg1))
-         (b2 (Compact-blame-get-bg-color
-              (substring id 6) compact-blame-bg2))
+         (b2 (Compact-blame-get-bg-color id compact-blame-bg2))
          (f (Compact-blame-fg-color-from-id id))
          (f2 (Compact-blame-fg-color-from-id id)))
    (setq length-indication
@@ -132,7 +137,7 @@ pass object contexts around or store them to variables as a single unit"
          :background b2 :foreground f2 :box '(:line-width -1)))) str))
    (setq str (replace-regexp-in-string "^\s+\\|\s+$" "" str))
    (setq str
-    (concat (propertize " \x25c4" 'face (list :foreground b)) str))
+    (concat (propertize " \x25c0" 'face (list :foreground b)) str))
    (overlay-put ov 'before-string str)))
 
 ;;(format "---\n\n%s" (symbol-function 'Compact-blame-update-overlay-local))
@@ -446,14 +451,16 @@ pass object contexts around or store them to variables as a single unit"
 ;; compact-blame-name-limit (- (float-time) take-off))
  )
 
+(defun compact-blame-go-to-next-not-committed () (interactive)
+ )
 
 (defconst Compact-blame-keymap (make-sparse-keymap))
 (define-key Compact-blame-keymap (kbd "RET") 'compact-blame-mode)
 (define-key Compact-blame-keymap "=" 'compact-blame-show-diff)
 (define-key Compact-blame-keymap "/" 'compact-blame-show-commit)
 (define-key Compact-blame-keymap "s" 'compact-blame-toggle-separators)
-(define-key Compact-blame-keymap "-" 'compact-blame-light-up)
-(define-key Compact-blame-keymap "+" 'compact-blame-light-down)
+(define-key Compact-blame-keymap "9" 'compact-blame-light-up)
+(define-key Compact-blame-keymap "0" 'compact-blame-light-down)
 (define-key Compact-blame-keymap "[" 'compact-blame-decrease-name-limit)
 (define-key Compact-blame-keymap "]" 'compact-blame-increase-name-limit)
 
