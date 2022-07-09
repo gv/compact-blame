@@ -376,8 +376,10 @@ to variables as a single unit"
 (defun Compact-blame-show-commit (id)
  (let* ((bn (format "*Commit %s*" id)) proc
         (cod-sys buffer-file-coding-system)
-        (enc (Compact-blame-get-cs-charset buffer-file-coding-system)))
+        (enc (Compact-blame-get-cs-charset cod-sys))
+        (dir (file-name-directory (buffer-file-name))))
   (with-current-buffer (get-buffer-create bn)
+   (setq default-directory dir)
    (setq buffer-read-only nil)
    (erase-buffer)
    (insert " ")
