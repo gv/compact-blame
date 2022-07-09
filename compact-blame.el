@@ -367,7 +367,7 @@ to variables as a single unit"
   (setq first
    (lambda (charsets)
     (if charsets
-     (if (eq (car charsets) 'emacs)
+     (if (or (eq (car charsets) 'unicode) (eq (car charsets) 'emacs))
       (funcall first (cdr charsets))
       (car charsets))
      'utf-8)))
@@ -376,7 +376,7 @@ to variables as a single unit"
 (defun Compact-blame-show-commit (id)
  (let* ((bn (format "*Commit %s*" id)) proc
         (cod-sys buffer-file-coding-system)
-        (enc (Compact-blame-get-cs-charset cod-sys)))
+        (enc (Compact-blame-get-cs-charset buffer-file-coding-system)))
   (with-current-buffer (get-buffer-create bn)
    (setq buffer-read-only nil)
    (erase-buffer)
@@ -463,6 +463,10 @@ to variables as a single unit"
 (define-key Compact-blame-keymap "0" 'compact-blame-light-down)
 (define-key Compact-blame-keymap "[" 'compact-blame-decrease-name-limit)
 (define-key Compact-blame-keymap "]" 'compact-blame-increase-name-limit)
+(define-key Compact-blame-keymap "w" 'scroll-down)
+(define-key Compact-blame-keymap " " 'scroll-up)
+(define-key Compact-blame-keymap "d"
+ (lambda () (interactive) (scroll-up (/ (window-total-height) 2))))
 
 (define-minor-mode compact-blame-mode "TODO Git blame view"
  :lighter ""
