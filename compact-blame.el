@@ -377,7 +377,13 @@ to variables as a single unit"
  (let* ((bn (format "*Commit %s*" id)) proc
         (cod-sys buffer-file-coding-system)
         (enc (Compact-blame-get-cs-charset cod-sys))
-        (dir (file-name-directory (buffer-file-name))))
+        ;; TODO
+        ;; Going to file (Enter key) doesn't work when
+        ;; C-b-s-c invoked from subdirectory
+        (dir
+         (if (buffer-file-name)
+          (file-name-directory (buffer-file-name))
+          default-directory)))
   (with-current-buffer (get-buffer-create bn)
    (setq default-directory dir)
    (setq buffer-read-only nil)
@@ -388,14 +394,16 @@ to variables as a single unit"
    ;; In case the file has some non utf-8 encoding:
    ;; Tell git to encode commit message and then we decode it back
    ;; Only utf-8 commit messages are supported!
-   (setq proc
-    (start-process bn (current-buffer) "git" "show"
-     "--ignore-space-change" "--encoding" enc id))
+   (let ((cmd (if (string-equal id "0000000000000000000000000000000000000000")
+               '("diff" "-w" "--submodule=diff")
+               (list "show"
+                "--ignore-space-change" "--encoding" enc id))))
+    (setq proc
+     (apply 'start-process bn (current-buffer) "git" cmd)))
    (set-process-coding-system proc cod-sys)
    (goto-char 1)
    (set-marker (process-mark proc) (point-max) (current-buffer))
-   (pop-to-buffer bn)
-   )))
+   (pop-to-buffer bn))))
 
 (defun compact-blame-show-diff ()
  (interactive) (Compact-blame-show-diff nil))
