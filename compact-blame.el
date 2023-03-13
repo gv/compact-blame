@@ -374,7 +374,7 @@ to variables as a single unit"
   (symbol-name (funcall first (coding-system-charset-list cs)))))
 
 (defun Compact-blame-show-commit (id)
- (let* ((bn (format "*Commit %s*" id)) proc
+ (let* ((bn (format "*Commit %s*" (substring id 0 8))) proc
         (cod-sys buffer-file-coding-system)
         (enc (Compact-blame-get-cs-charset cod-sys))
         ;; TODO
@@ -386,24 +386,29 @@ to variables as a single unit"
           default-directory)))
   (with-current-buffer (get-buffer-create bn)
    (setq default-directory dir)
-   (setq buffer-read-only nil)
-   (erase-buffer)
-   (insert " ")
-   (setq buffer-read-only t)
-   (diff-mode)
-   ;; In case the file has some non utf-8 encoding:
-   ;; Tell git to encode commit message and then we decode it back
-   ;; Only utf-8 commit messages are supported!
-   (let ((cmd (if (string-equal id "0000000000000000000000000000000000000000")
-               '("diff" "-w" "--submodule=diff")
-               (list "show"
-                "--ignore-space-change" "--encoding" enc id))))
-    (setq proc
-     (apply 'start-process bn (current-buffer) "git" cmd)))
-   (set-process-coding-system proc cod-sys)
-   (goto-char 1)
-   (set-marker (process-mark proc) (point-max) (current-buffer))
-   (pop-to-buffer bn))))
+   (setq-local revert-buffer-function
+    (lambda (&rest ignored)
+     (setq buffer-read-only nil)
+     (erase-buffer)
+     ;; TODO Why doesn't work without it?
+     (insert " ")
+     (setq buffer-read-only t)
+     (diff-mode)
+     ;; In case the file has some non utf8 encoding:
+     ;; Tell git to encode commit message and then we decode it back
+     ;; That has the effect that only utf8 commit messages are supported!
+     (let ((cmd (if (string-equal id
+                     "0000000000000000000000000000000000000000")
+                 '("diff" "-w" "--submodule=diff")
+                 (list "show"
+                  "--ignore-space-change" "--encoding" enc id))))
+      (setq proc
+       (apply 'start-process bn (current-buffer) "git" cmd)))
+     (set-process-coding-system proc cod-sys)
+     (goto-char 1)
+     (set-marker (process-mark proc) (point-max) (current-buffer))
+     (pop-to-buffer bn)))
+   (funcall revert-buffer-function))))
 
 (defun compact-blame-show-diff ()
  (interactive) (Compact-blame-show-diff nil))
