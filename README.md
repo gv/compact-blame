@@ -16,6 +16,7 @@ Keys
 `0` Increase color saturation  
 `=` Go to diff for current file  
 `/` Got to commit  
+`n` Jump to next not commited part  
 `Enter` Turn compact-blame-mode off
 
 Config

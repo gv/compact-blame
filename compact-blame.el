@@ -115,7 +115,8 @@ to variables as a single unit"
         (setq author-rest (+ 1 author-rest)))
        (if (<= author-rest 1)
         author
-        (concat (substring author 0 (max (- (length author)) (- author-rest)))
+        (concat
+         (substring author 0 (max (- (length author)) (- author-rest)))
          (Compact-blame-superscript author-rest 0 10)))))))
    (setq str (replace-regexp-in-string "%[.]" author str))
    (setq str
@@ -374,7 +375,9 @@ to variables as a single unit"
   (symbol-name (funcall first (coding-system-charset-list cs)))))
 
 (defun Compact-blame-show-commit (id)
- (let* ((bn (format "*Commit %s*" (substring id 0 8))) proc
+ (let* ((bn
+         (format "*Commit %s*"
+          (if (> (length id) 8) (substring id 0 8) id))) proc
         (cod-sys buffer-file-coding-system)
         (enc (Compact-blame-get-cs-charset cod-sys))
         ;; TODO
@@ -467,7 +470,19 @@ to variables as a single unit"
  )
 
 (defun compact-blame-go-to-next-not-committed () (interactive)
- )
+ (let* ((start (point)) (currentRev "") ov)
+  (while (and (not (eobp))
+          (not (string-equal currentRev
+                "0000000000000000000000000000000000000000")))
+   (goto-char (next-overlay-change (point)))
+   (mapc
+    (lambda (ov)
+     (setq currentRev
+      (or (overlay-get ov 'Compact-blame-rev) currentRev)))
+    (overlays-in (point) (point))))
+  (when (eobp)
+   (goto-char start)
+   (message "No further not committed lines"))))
 
 (defconst Compact-blame-keymap (make-sparse-keymap))
 (define-key Compact-blame-keymap (kbd "RET") 'compact-blame-mode)
@@ -478,6 +493,8 @@ to variables as a single unit"
 (define-key Compact-blame-keymap "0" 'compact-blame-light-down)
 (define-key Compact-blame-keymap "[" 'compact-blame-decrease-name-limit)
 (define-key Compact-blame-keymap "]" 'compact-blame-increase-name-limit)
+(define-key Compact-blame-keymap "n"
+ 'compact-blame-go-to-next-not-committed)
 (define-key Compact-blame-keymap "w" 'scroll-down)
 (define-key Compact-blame-keymap " " 'scroll-up)
 (define-key Compact-blame-keymap "d"
