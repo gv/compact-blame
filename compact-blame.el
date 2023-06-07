@@ -4,6 +4,7 @@
 
 (if (version< emacs-version "24.4")
  (error "Emacs version %s is not new enough" emacs-version))
+(require 'subr-x)
 
 ;; Config
 
@@ -13,6 +14,7 @@
 (defvar compact-blame-bg2 "#FFFFC0")
 (defvar compact-blame-light-coeff 650)
 (defvar compact-blame-name-limit 80)
+(defvar compact-blame-future-warning-branch nil)
 
 ;; End of config
 ;; Using capitalized prefix for private functions/vars so they don't
@@ -320,10 +322,10 @@ to variables as a single unit"
   (Compact-blame-install-output-handler)
   (set-process-sentinel Compact-blame-process
    (lambda (process event)
-    (setq event (car (split-string event)))
+    (setq event (string-trim event))
     (Compact-blame-update-status b nil 100)
     (message
-     "event=%s time=%dms" event (* 1000 (- (float-time) take-off)))))))
+     "event='%s' time=%dms" event (* 1000 (- (float-time) take-off)))))))
 
 
 (defun Compact-blame-cleanup ()
