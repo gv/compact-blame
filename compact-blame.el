@@ -209,6 +209,7 @@ to variables as a single unit"
   ov))
 
 (defun Compact-blame-get-body-ov-local (line-number id)
+ "These overlays are used for separators"
  (let* ((start (Compact-blame-find-start-local line-number)) ov
         (end (+ start 4)))
   ;; (setq end (min end 
@@ -404,9 +405,10 @@ to variables as a single unit"
      ;; That has the effect that only utf8 commit messages are supported!
      (let ((cmd (if (string-equal id
                      "0000000000000000000000000000000000000000")
-                 '("diff" "-w" "--submodule=diff")
+                 '("diff" "-w" "--submodule=diff" "--no-color")
                  (list "show"
-                  "--ignore-space-change" "--encoding" enc id))))
+                  "--ignore-space-change" "--encoding" enc id
+                  "--no-color"))))
       (setq proc
        (apply 'start-process bn (current-buffer) "git" cmd)))
      (set-process-coding-system proc cod-sys)
@@ -523,7 +525,8 @@ to variables as a single unit"
      '(compact-blame-mode Compact-blame-progress-percentage-str))
     (Compact-blame-create-process))
    (unless target
-    (Compact-blame-cleanup))
-   (setq buffer-read-only compact-blame-saved-readonly))))
+    ;; Goes 1 to 0
+    (Compact-blame-cleanup)
+    (setq buffer-read-only compact-blame-saved-readonly)))))
 
 
