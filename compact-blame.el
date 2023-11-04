@@ -34,6 +34,7 @@
 ;; Put this here to allow properties to mode line text
 (put 'Compact-blame-progress-percentage-str 'risky-local-variable t)
 (defvar-local Compact-blame-max-author-length 0)
+(defvar-local Compact-blame-fatal nil)
 
 (defun Compact-blame-get-bg-color (id config)
  (if (string-equal "rainbow2" config)
@@ -164,13 +165,17 @@ to variables as a single unit"
         (percentage (/ (* 100 line-number) Compact-blame-total-lines)))
    (setq str (format str line-number Compact-blame-total-lines percentage))
    (overlay-put (Compact-blame-get-status-ov-local) 'after-string
-    (if show
-     (Compact-blame-propertize-face str :foreground f :background b)
-     ""))
+    (if Compact-blame-fatal
+     (Compact-blame-propertize-face
+      (concat "fatal: " Compact-blame-fatal) :foreground f :background b)
+     (if show
+      (Compact-blame-propertize-face str :foreground f :background b)
+      "")))
    (setq Compact-blame-progress-percentage-str
     (if show
-     (concat (Compact-blame-propertize-face (format "%d%% blamed" percentage)
-              :foreground f :background b) " ")
+     (concat
+      (Compact-blame-propertize-face (format "%d%% blamed" percentage)
+       :foreground f :background b) " ")
      ""))
    (force-mode-line-update))))
 
@@ -302,7 +307,7 @@ to variables as a single unit"
         (setq Compact-blame-max-author-length (length author)))
        (with-current-buffer b ,call-update))
       ((setq fatal (match-string 6 ac))
-       (message "fatal='%s'" fatal)) 
+       (message "fatal='%s'" (setq Compact-blame-fatal fatal)))
       ((setq unparsed (match-string 98 ac))
        (message "unparsed='%s'" unparsed)))))))
 
@@ -383,13 +388,12 @@ to variables as a single unit"
           (if (> (length id) 8) (substring id 0 8) id))) proc
         (cod-sys buffer-file-coding-system)
         (enc (Compact-blame-get-cs-charset cod-sys))
-        ;; TODO
-        ;; Going to file (Enter key) doesn't work when
-        ;; C-b-s-c invoked from subdirectory
-        (dir
-         (if (buffer-file-name)
-          (file-name-directory (buffer-file-name))
-          default-directory)))
+        ;; Set directory for "go to file" (Enter key) to always work
+        ;; TODO Handle symlinks inside buffer-file-name or def.-dir.
+        (dir (locate-dominating-file
+              (if (buffer-file-name)
+               (file-name-directory (buffer-file-name))
+               default-directory) ".git")))
   (with-current-buffer (get-buffer-create bn)
    (setq default-directory dir)
    (setq-local revert-buffer-function
