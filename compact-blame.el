@@ -14,7 +14,7 @@
 (defvar compact-blame-bg2 "#FFFFC0")
 (defvar compact-blame-light-coeff 650)
 (defvar compact-blame-name-limit 80)
-(defvar compact-blame-future-warning-branch nil)
+(defvar compact-blame-git-command '("git"))
 
 ;; End of config
 ;; Using capitalized prefix for private functions/vars so they don't
@@ -400,9 +400,6 @@ to variables as a single unit"
     (lambda (&rest ignored)
      (setq buffer-read-only nil)
      (erase-buffer)
-     ;; TODO Why doesn't work without it?
-     (insert " ")
-     (setq buffer-read-only t)
      (diff-mode)
      ;; In case the file has some non utf8 encoding:
      ;; Tell git to encode commit message and then we decode it back
@@ -412,9 +409,11 @@ to variables as a single unit"
                  '("diff" "-w" "--submodule=diff" "--no-color")
                  (list "show"
                   "--ignore-space-change" "--encoding" enc id
-                  "--no-color"))))
-      (setq proc
-       (apply 'start-process bn (current-buffer) "git" cmd)))
+                  "--no-color" "--submodule=diff"))))
+      (setq cmd (append compact-blame-git-command cmd))
+      (insert (format "--- Running %s...\n" cmd))
+      (setq buffer-read-only t)
+      (setq proc (apply 'start-process bn (current-buffer) cmd)))
      (set-process-coding-system proc cod-sys)
      (goto-char 1)
      (set-marker (process-mark proc) (point-max) (current-buffer))
