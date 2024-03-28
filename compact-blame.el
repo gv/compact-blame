@@ -87,6 +87,10 @@ to variables as a single unit"
    last
    (concat (Compact-blame-superscript (/ n base) size base) last))))
 
+(defun Compact-blame-roman-month (n)
+ ;; Only 0-11 supported
+ (string (+ #x2160 n)))
+
 (Compact-blame-defun-subst Compact-blame-update&save-overlay-local
  `(,@region-vars ,@commit-vars)
  "Print data onto the overlay and save them to file-info" '()
@@ -128,7 +132,7 @@ to variables as a single unit"
     (Compact-blame-propertize-face str :background b :foreground f))
    ;; %0 should be "%M" but it breaks in a very weird way in makefile-mode...
    (setq str
-    (replace-regexp-in-string "%[m0x]"
+    (replace-regexp-in-string "%[m0xR]"
      (lambda (s)
       (if (string-equal s "%m")
        (Compact-blame-propertize-face
@@ -137,7 +141,9 @@ to variables as a single unit"
        (Compact-blame-propertize-face 
         (if (string-equal s "%0")
          (format-time-string "%m" time)
-         (format "%x" (nth 4 (decode-time time))))
+         (if (string-equal s "%R")
+          (Compact-blame-roman-month (nth 4 (decode-time time)))
+          (format "%x" (nth 4 (decode-time time)))))
          :background b2 :foreground f2 :box '(:line-width -1)))) str))
    (setq str (replace-regexp-in-string "^\s+\\|\s+$" "" str))
    (setq str
