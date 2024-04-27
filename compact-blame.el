@@ -406,7 +406,6 @@ to variables as a single unit"
     (lambda (&rest ignored)
      (setq buffer-read-only nil)
      (erase-buffer)
-     (diff-mode)
      ;; In case the file has some non utf8 encoding:
      ;; Tell git to encode commit message and then we decode it back
      ;; That has the effect that only utf8 commit messages are supported!
@@ -419,6 +418,9 @@ to variables as a single unit"
       (setq cmd (append compact-blame-git-command cmd))
       (insert (format "--- Running %s...\n" cmd))
       (setq buffer-read-only t)
+      ;; This needs to be called with buffer-read-only true,
+      ;; otherwise Enter key doesn't work
+      (diff-mode)
       (setq proc (apply 'start-process bn (current-buffer) cmd)))
      (set-process-coding-system proc cod-sys)
      (goto-char 1)
@@ -518,6 +520,7 @@ to variables as a single unit"
  :keymap Compact-blame-keymap
  (let* ((path (buffer-file-name)) (target compact-blame-mode))
   (when (and compact-blame-mode (not (buffer-file-name)))
+   (backtrace)
    (message "Buffer %s is not a file! Turning off compact-blame-mode"
     (current-buffer))
    (setq compact-blame-mode nil))
