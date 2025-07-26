@@ -528,6 +528,12 @@ to variables as a single unit"
    (message "Buffer %s is modified! Turning off compact-blame-mode"
     (current-buffer))
    (setq compact-blame-mode nil))
+  ;; 'git blame' won't show anything for empty file
+  (message "min=%s max=%s" (point-min) (point-max))
+  (when (and compact-blame-mode (= (point-min) (point-max)))
+   (message "Empty file %s. Turning off compact-blame-mode"
+    (current-buffer))
+   (setq compact-blame-mode nil))
   (if compact-blame-mode
    (progn
     (set (make-local-variable 'compact-blame-saved-readonly)
